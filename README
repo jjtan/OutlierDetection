@@ -1,0 +1,25 @@
+Name: JJ Tan
+Comp 135 - Final Project: Outlier detection
+December 20, 2012
+
+//////// Relevant Files ////////
+General Documentation: README
+Code: arff.py space.py kMeans.py custom.py
+Custom Method: custom.txt SyntheticTests.png
+Custom Method Test: synthetic1.arff synthetic2.arff data_gen.py
+Results: k-means-dataset1.dat k-means-dataset2.dat cod-dataset1.dat
+         cod-dataset2.dat
+
+//////// Running the code ////////
+
+Using Python 2.7.3
+
+Part 1:
+python kMeans.py Dataset1-outlier.arff Dataset2-outlier.arff
+
+Part 2:
+python custom.py Dataset1-outlier.arff Dataset2-outlier.arff
+(Note: The order of the arff files is important. I have altered the parameters
+to account for the larger set in the 2nd file.)
+
+*For explanation of the custom algorithm see custom.txt

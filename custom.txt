@@ -1,0 +1,199 @@
+JJ Tan
+Customized Outlier Detection Explanation
+December 20, 2012
+
+//////// Inspiration ////////
+
+The main inspiration behind this algorithm was that, based on what we
+studied in class, it seemed as if all hierachical clustering methods require
+some arbitrary distance threshold that would determine if two points belonged
+to the same cluster. This is a problem if there are two clusters with varying
+standard deviation. It also seemed that the k-Means method required an idea
+of how many clusters there might be. I attempted to create a method that
+addressed both these weaknesses.
+
+//////// Algorithm /////////
+
+The intuition:
+  o
+          x x 
+        x  x x
+         x x x
+The outlier, o's k nearest neighbors will be the x's, but for any x, o will not
+appear as a nearest neighbor (provided k is well specified).
+
+Parameters: k, min_cluster_size
+
+1. For each point create a set of its k nearest points (the kNN set).
+2. For each pair of points, p and q:
+     If p is in q's kNN set and q is in p's kNN set:
+       Store the edge (p, q)
+3. Using the set of stored edges, discover the connected components (I used
+   Union Find).
+4. For clusters of size less than min_cluster_size, all its points will be
+   determined as outliers.
+
+The key here is that the distance from an outlier to its neighbors will be
+relatively larger than the distance between the non-outliers nearby.
+
+Addressing the weakness of hierachical clustering described above:
+  If we have points 2, 2.3, 5, 20, 23, 30 where 5 and 30 are outliers, we need
+  to specify some threshold less than (5-2.3) and larger than (2.3-2) but also
+  less than (30-23) and larger than (23-20). This doesn't work because there
+  is no value less than (5-2.3) and greater than (23-20). This example is a
+  bit weak since we don't really have clusters, however, if we think of points
+  in more dimensions it is easy to see such a scenario:
+
+                                     o
+
+
+   o                   x
+                            x
+     x x            x     x     x
+      x                x
+                            x
+  The algorithm I have described does not have this problem because we don't
+  ever look at the distance directly. All we care about are the nearest
+  neighbors.
+
+Addressing the weakness of using k-Means:
+  The algorithm does not take the number of clusters as a parameter.
+
+Potential counter arguments:
+  You might argue that all I've done is shift the burden of the previous
+  parameters into these 2 new parameters (k and min_cluster_size). But, these
+  parameters aren't "correlated" to either a distance threshold or the number
+  of clusters. I use "correlated" here loosely, but for example a distance
+  threshold is easily "correlated" to the number of clusters: smaller distance
+  threshold means more clusters. My parameters are instead related to variations
+  in the density.
+
+  Another argument might be that my parameters are heavily dependant on the
+  number of data points. That is true, but only because of I have chosen to 
+  represent them in this way for clarity. I could easily have chosen both
+  parameters to be ratios.
+
+A weakness:
+  This algorithm would do especially well for distributions whose
+  probabilities fall quickly. However, for distributions that have a gradual
+  decrease in probability, the chances of an outlier being able to "connect
+  back" to the cluster (via nearest neighbors) gets higher. I am unsure
+  whether this is really a problem since visually I would not determine such
+  points as outliers anyway. An example:
+
+    x  x    x      x          x               o
+
+  One true weakness with this algorithm is if there is not enough data and
+  the distribution is "spotty". If there are highly dense clumps of data
+  within a cluster then the algorithm might fail. This is remedied by
+  obtaining more data and increasing k. An example:
+
+    x xxx  y  xxx x x (y might be incorrectly determined to be an outlier)
+
+Other strengths:
+  More testing is required but I believe that my algorithm will perform better
+  over a larger variety of shapes, since what really matters is the rate of
+  change in the probability and neither the shape nor relative size of
+  multiple clusters matter.
+
+//////// Testing ////////
+
+I first wrote a generator (data_gen.py) that creates arff files with a single
+cluster distributed normally. I used this to create 2 datasets
+(synthetic1.arff and synthetic2.arff). I chose to create these data sets in
+2 dimensions because I did not think there was any loss of generality and I
+would be able to graph them (SyntheticTests.png). I wrote my algorithm without
+a formal definition of outlier (if not you would just build the definition into
+the algorithm). Instead I tried to match the visual intuition of a human. So
+it was important to have a visual comparison. It turns out the algorithm
+performs well. It does not make any obvious mistakes, the only questionable
+results being the result of "spottiness" (as described earlier). It definitely
+out performs the method implemented in part 1.
+
+*How do I determine if the algorithm performs well? I see if it picked the
+same points as myself when I visually inspect the graphs (SyntheticTests.png).
+I understand that the instruction was to construct a dataset in which I KNOW
+what the outliers are, but this is equivalent since any construction will
+ultimately be based on my own intuition anyways. The only difference is now I
+am using my intuitive post-creation as opposed to for-creation.
+
+//////// A Measure to Determine Anomalies ////////
+(This section is in response to terminology in the project description and is
+not relevant to the algorithm.)
+
+The measure I am using is exactly the one built into the algorithm.
+Intuitively, I am looking for points that seem too far from other points
+relative to the distance between those other points. Developing a precise
+measure for this intuition is beyond the scope of this project.
+
+My method does not lend itself well in the creation of a simple real (floating)
+measure (that reflects the probability that a point is an outlier). It will
+either decide if an edge exists or does not exist. One way to make it more of a
+"measure" might be to perform the same algorithm multiple times with varying
+parameters and in such a way we could take the number of trials that resulted
+in an edge and divide that by the total number of trials to get a measure that
+reflected the likelihood of the edge. However, I don't believe this is
+productive. I believe that there are optimal parameters given the size of the
+data set and varying the parameters to try and find the optimal one is pointless
+because our definition of outlier is built into the algorithm.
+
+Another way I thought to create a measure might be to look at average distances
+to the nearest neighbors and then compare an outlier and its nearest neighbors
+using this new metric. At first this seemed like a good idea, but I am 
+uncertain if this will work when multiple outliers are close together. Rather
+than provide potentially arbitrary measures I have chosen to abstain.
+
+*As a result, please note that there will be no outlier measurement beside the
+line numbers in the appendix. To assess the performance of my algorithm I
+would for now suggest using the notion of relative distances I described
+earlier and looking at SyntheticTests.png.
+
+//////// Appendix ////////
+
+Results for synthetic1.arff with k = 5, min_size = 3:
+
+Clusters (numbers are the line numbers of the points in the arff file):
+  set([7, 97, 67, 94, 87])
+  set([66, 35, 102, 103, 8, 48, 83, 20, 86, 89, 29])
+  set([9, 10, 11, 12, 13, 15, 16, 17, 21, 23, 24, 26, 27, 28, 33, 34, 37, 39,
+       40, 41, 42, 43, 44, 45, 46, 49, 51, 52, 53, 54, 55, 56, 58, 59, 61, 62,
+       63, 64, 68, 69, 70, 71, 72, 73, 74, 75, 76, 78, 79, 80, 81, 82, 84, 90,
+       91, 92, 93, 95, 96, 98, 99, 100, 101, 105, 106])
+  set([18, 14])
+  set([32, 19, 36, 104, 25, 60, 47])
+  set([22])
+  set([57, 38, 30])
+  set([31])
+  set([50])
+  set([88, 65])
+  set([77])
+  set([85])]
+
+Line numbers of outliers:
+18
+14
+22
+31
+50
+88
+65
+77
+85
+        
+Results for synthetic2.arff with k = 12, min_size = 3:
+
+Clusters (numbers are the line numbers of the points in the arff file):
+set([7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+     26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 41, 42, 43, 44, 45,
+     46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
+     65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84,
+     85, 86, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103,
+     104, 105, 106])
+set([40, 87])
+set([83])
+
+Line numbers of outliers:
+40
+87
+83
+
